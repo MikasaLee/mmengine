@@ -375,15 +375,7 @@ class ValLoop(BaseLoop):
 
         # compute metrics
         metrics = self.evaluator.evaluate(len(self.dataloader.dataset))
-        # get val loss and save to metrics
-        val_loss = 0
-        for loss_name, loss_value in self.val_loss.items():
-            avg_loss = sum(loss_value) / len(loss_value)
-            metrics[loss_name] = avg_loss
-            if 'loss' in loss_name:
-                val_loss += avg_loss  # type: ignore
-        metrics['val_loss'] = val_loss
-
+       
         self.runner.call_hook('after_val_epoch', metrics=metrics)
         self.runner.call_hook('after_val')
         return metrics
@@ -400,28 +392,15 @@ class ValLoop(BaseLoop):
             'before_val_iter', batch_idx=idx, data_batch=data_batch)
         # outputs should be sequence of BaseDataElement
         with autocast(enabled=self.fp16):
-            outputs = self.runner.model.val_step(data_batch)
-        if isinstance(outputs[-1],
-                      BaseDataElement) and outputs[-1].keys() == ['loss']:
-            loss = outputs[-1].loss  # type: ignore
-            outputs = outputs[:-1]
-        else:
-            loss = dict()
-        # get val loss and avoid breaking change
-        for loss_name, loss_value in loss.items():
-            if loss_name not in self.val_loss:
-                self.val_loss[loss_name] = []
-            if isinstance(loss_value, torch.Tensor):
-                self.val_loss[loss_name].append(loss_value.item())
-            elif is_list_of(loss_value, torch.Tensor):
-                self.val_loss[loss_name].extend([v.item() for v in loss_value])
-
+            # outputs = self.runner.model.val_step(data_batch)
+            outputs,loss = self.runner.model.val_step(data_batch)
         self.evaluator.process(data_samples=outputs, data_batch=data_batch)
+
         self.runner.call_hook(
             'after_val_iter',
             batch_idx=idx,
             data_batch=data_batch,
-            outputs=outputs)
+            outputs=[outputs,loss])
 
 
 @LOOPS.register_module()
@@ -472,14 +451,6 @@ class TestLoop(BaseLoop):
 
         # compute metrics
         metrics = self.evaluator.evaluate(len(self.dataloader.dataset))
-        # get test loss and save to metrics
-        test_loss = 0
-        for loss_name, loss_value in self.test_loss.items():
-            avg_loss = sum(loss_value) / len(loss_value)
-            metrics[loss_name] = avg_loss
-            if 'loss' in loss_name:
-                test_loss += avg_loss  # type: ignore
-        metrics['test_loss'] = test_loss
 
         self.runner.call_hook('after_test_epoch', metrics=metrics)
         self.runner.call_hook('after_test')
@@ -495,27 +466,13 @@ class TestLoop(BaseLoop):
         self.runner.call_hook(
             'before_test_iter', batch_idx=idx, data_batch=data_batch)
         # predictions should be sequence of BaseDataElement
-        with autocast(enabled=self.fp16):
-            outputs = self.runner.model.test_step(data_batch)
-        if isinstance(outputs[-1],
-                      BaseDataElement) and outputs[-1].keys() == ['loss']:
-            loss = outputs[-1].loss  # type: ignore
-            outputs = outputs[:-1]
-        else:
-            loss = dict()
-        # get val loss and avoid breaking change
-        for loss_name, loss_value in loss.items():
-            if loss_name not in self.test_loss:
-                self.test_loss[loss_name] = []
-            if isinstance(loss_value, torch.Tensor):
-                self.test_loss[loss_name].append(loss_value.item())
-            elif is_list_of(loss_value, torch.Tensor):
-                self.test_loss[loss_name].extend(
-                    [v.item() for v in loss_value])
 
+        with autocast(enabled=self.fp16):
+            outputs,loss = self.runner.model.val_step(data_batch)
         self.evaluator.process(data_samples=outputs, data_batch=data_batch)
+
         self.runner.call_hook(
             'after_test_iter',
             batch_idx=idx,
             data_batch=data_batch,
-            outputs=outputs)
+            outputs=[outputs,loss])

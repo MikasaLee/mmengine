@@ -125,6 +125,47 @@ class RuntimeInfoHook(Hook):
             for key, value in outputs.items():
                 runner.message_hub.update_scalar(f'train/{key}', value)
 
+    ## 2024-02-25：添加after_val_iter和after_test_iter，以便在验证阶段打印loss
+    def after_val_iter(self,
+                         runner,
+                         batch_idx: int,
+                         data_batch: DATA_BATCH = None,
+                         outputs: Optional[dict] = None) -> None:
+        """Update ``log_vars`` in model outputs every iteration.
+
+        Args:
+            runner (Runner): The runner of the training process.
+            batch_idx (int): The index of the current batch in the train loop.
+            data_batch (Sequence[dict], optional): Data from dataloader.
+                Defaults to None.
+            outputs (dict, optional): Outputs from model. Defaults to None.
+        """
+        if outputs is not None:
+            if isinstance(outputs,list):  # outputs [outputs,loss]，只要loss
+                outputs = outputs[1]
+            for key, value in outputs.items():
+                runner.message_hub.update_scalar(f'val/{key}', value)
+
+    def after_test_iter(self,
+                         runner,
+                         batch_idx: int,
+                         data_batch: DATA_BATCH = None,
+                         outputs: Optional[dict] = None) -> None:
+        """Update ``log_vars`` in model outputs every iteration.
+
+        Args:
+            runner (Runner): The runner of the training process.
+            batch_idx (int): The index of the current batch in the train loop.
+            data_batch (Sequence[dict], optional): Data from dataloader.
+                Defaults to None.
+            outputs (dict, optional): Outputs from model. Defaults to None.
+        """
+        if outputs is not None:
+            if isinstance(outputs,list):  # outputs [outputs,loss]，只要loss
+                outputs = outputs[1]
+            for key, value in outputs.items():
+                runner.message_hub.update_scalar(f'test/{key}', value)
+
     def before_val(self, runner) -> None:
         self.last_loop_stage = runner.message_hub.get_info('loop_stage')
         runner.message_hub.update_info('loop_stage', 'val')

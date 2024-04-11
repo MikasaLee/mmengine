@@ -88,7 +88,7 @@ class MMDistributedDataParallel(DistributedDataParallel):
 
     def __init__(self,
                  module,
-                 detect_anomalous_params: bool = False,
+                 detect_anomalous_params: bool = False,     # 20240301，原本是False,调试的时候打开。
                  **kwargs):
         super().__init__(module=module, **kwargs)
         self.detect_anomalous_params = detect_anomalous_params
@@ -121,6 +121,7 @@ class MMDistributedDataParallel(DistributedDataParallel):
             losses = self._run_forward(data, mode='loss')
         parsed_loss, log_vars = self.module.parse_losses(losses)
         optim_wrapper.update_params(parsed_loss)
+
         if self.detect_anomalous_params:
             detect_anomalous_params(parsed_loss, model=self)
         return log_vars

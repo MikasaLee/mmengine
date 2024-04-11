@@ -129,8 +129,13 @@ class BaseModel(BaseModule):
         Returns:
             list: The predictions of given data.
         """
+        
         data = self.data_preprocessor(data, False)
-        return self._run_forward(data, mode='predict')  # type: ignore
+        pred,losses = self._run_forward(data, mode='predict')  # type: ignore
+        
+        parsed_losses, log_vars = self.parse_losses(losses)  # type: ignore
+
+        return pred,log_vars  # type: ignore
 
     def test_step(self, data: Union[dict, tuple, list]) -> list:
         """``BaseModel`` implements ``test_step`` the same as ``val_step``.

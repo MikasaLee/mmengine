@@ -235,10 +235,14 @@ class LogProcessor:
             tag['memory'] = max_memory
 
         # Loop left keys to fill `log_str`.
-        if mode in ('train', 'val'):
+        # changed it by lrr at 20240224
+        # if mode in ('train', 'val'):
+        if mode in ('train', 'val', 'test'):
             log_items = []
             for name, val in log_tag.items():
-                if mode == 'val' and not name.startswith('val/loss'):
+                # changed it by lrr at 20240224
+                #if mode == 'val' and not name.startswith('val/loss'):
+                if mode in ['val','test'] and 'loss' not in name:
                     continue
                 if isinstance(val, float):
                     val = f'{val:.{self.num_digits}f}'
