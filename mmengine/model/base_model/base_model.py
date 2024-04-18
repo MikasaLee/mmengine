@@ -131,11 +131,19 @@ class BaseModel(BaseModule):
         """
         
         data = self.data_preprocessor(data, False)
-        pred,losses = self._run_forward(data, mode='predict')  # type: ignore
         
-        parsed_losses, log_vars = self.parse_losses(losses)  # type: ignore
-
-        return pred,log_vars  # type: ignore
+        # changed by lrr, 2024.04.18
+        # old
+        # pred,losses = self._run_forward(data, mode='predict')  # type: ignore
+        # parsed_losses, log_vars = self.parse_losses(losses)  # type: ignore
+        # new
+        results = self._run_forward(data, mode='predict')
+        if len(results) == 2:
+            pred,losses = results[0],results[1]
+            parsed_losses, log_vars = self.parse_losses(losses) 
+            return pred,log_vars  # type: ignore
+        else: return results
+        # new end
 
     def test_step(self, data: Union[dict, tuple, list]) -> list:
         """``BaseModel`` implements ``test_step`` the same as ``val_step``.
