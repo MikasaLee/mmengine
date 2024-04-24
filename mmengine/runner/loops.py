@@ -392,8 +392,12 @@ class ValLoop(BaseLoop):
             'before_val_iter', batch_idx=idx, data_batch=data_batch)
         # outputs should be sequence of BaseDataElement
         with autocast(enabled=self.fp16):
-            # outputs = self.runner.model.val_step(data_batch)
-            outputs,loss = self.runner.model.val_step(data_batch)
+            results = self.runner.model.val_step(data_batch)
+            if len(results) == 2:
+                outputs,loss = results[0],results[1]
+            else: 
+                outputs = results
+                loss = {'invalid_loss':-10086}     # 自己设的固定值，表示不算loss
         self.evaluator.process(data_samples=outputs, data_batch=data_batch)
 
         self.runner.call_hook(
